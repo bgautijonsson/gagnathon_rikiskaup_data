@@ -6,4 +6,4 @@
 .quarto
 data/opnirreikningar.parquet
 data/rikisreikningur.parquet
-data-raw/opnirreikningar/
+data-raw/opnirreikningar/**.csv

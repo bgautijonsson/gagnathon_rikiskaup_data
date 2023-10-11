@@ -1,0 +1,117 @@
+---
+title: "EDA"
+format: html
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(here)
+library(arrow)
+```
+
+```{r}
+opnirreikningar <- read_parquet(here("data", "opnirreikningar.parquet"))
+```
+
+```{r}
+rikisreikningur <- read_parquet(here("data", "rikisreikningur.parquet"))
+```
+
+
+# Tengja á kaupandi = stofnun
+
+```{r}
+stofnun_or <- opnirreikningar |> 
+  distinct(kaupandi) |> 
+  rename(stofnun = kaupandi) |> 
+  mutate(
+    stofnun = str_to_lower(stofnun),
+    OR = "Já"
+  )
+```
+
+
+```{r}
+stofnun_rr <- rikisreikningur |> 
+  distinct(stofnun) |> 
+  mutate(
+    RR = "Já"
+  )
+```
+
+
+
+```{r}
+stofnun_or |> 
+  full_join(
+    stofnun_rr
+  ) |> 
+  mutate_at(
+    vars(-stofnun),
+    coalesce,
+    "Nei"
+  ) |> 
+  count(OR, RR)
+```
+
+```{r}
+stofnun_or |> 
+  anti_join(stofnun_rr)
+```
+
+## Vegagerðin
+
+```{r}
+stofnun_or |> 
+  filter(str_detect(stofnun, "vegag"))
+```
+
+```{r}
+stofnun_rr |> 
+  filter(str_detect(stofnun, "vegag"))
+```
+
+Breytum `vegagerðin, resktur` í `vegagerðin` í `opnirreikningar`
+
+## Barna- og fjölskyldustofa
+
+```{r}
+stofnun_or |> 
+  filter(str_detect(stofnun, "barna"))
+```
+
+```{r}
+stofnun_rr |> 
+  filter(str_detect(stofnun, "barna"))
+```
+
+
+```{r}
+opnirreikningar |> 
+  filter(str_detect(str_to_lower(kaupandi), "barna")) |> 
+  summarise(
+    min_dags = min(dags_greidslu),
+    max_dags = max(dags_greidslu),
+    .by = kaupandi
+  )
+```
+
+Barnaverndarstofa varð að Barna- og fjölskyldustofu nýlega
+
+## Heilsugæsla höfuðborgarsvæðisins
+
+```{r}
+stofnun_or |> 
+  filter(str_detect(stofnun, "heilsugæsla"))
+```
+
+```{r}
+stofnun_rr |> 
+  filter(str_detect(stofnun, "heilsugæsla"))
+```
+
+
+#

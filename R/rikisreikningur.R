@@ -11,71 +11,60 @@ library(arrow)
 
 base_path <- here("data-raw", "rikisreikningur")
 
-read_fun <- function(year) {
+
+download_rikisreikningur <- function() {
+  financial_url <- "https://rkaup.blob.core.windows.net/datathon2023/rikisreikningur_fjarhagsgogn.csv"
   
-  if (year < 2020) {
-    read_csv2(glue("{base_path}/Rikisreikningur_gogn_{year}.csv")) |> 
-      clean_names() |> 
-      select(ar = timabil_ar,
-             raduneyti = raduneyti_heiti,
-             stofnun = stofnun_heiti,
-             fjarlagavidfang = fjarlagavidfang_heiti,
-             malefnasvid = malefnasvid_heiti,
-             malaflokkur = malaflokkur_heiti,
-             tegund2 = tegund_l2_heiti,
-             tegund3 = tegund_l3_heiti,
-             tegund = tegund_heiti,
-             samtals) |> 
-      mutate_at(vars(raduneyti:tegund), str_to_lower)
-  } else {
-    read_csv2(glue("{base_path}/Rikisreikningur_gogn_{year}.csv")) |> 
-      clean_names() |> 
-      select(ar = timabil_ar,
-             raduneyti = raduneyti_heiti,
-             stofnun = stofnun_heiti,
-             fjarlagavidfang = fjarlagavidfang_heiti,
-             malefnasvid = malefnasvid_heiti,
-             malaflokkur = malaflokkur_heiti,
-             tegund2 = tegund_l2heiti,
-             tegund3 = tegund_l3heiti,
-             tegund = tegund_heiti,
-             samtals) |> 
-      mutate_at(vars(raduneyti:tegund), str_to_lower)
-  }
+  download.file(
+    url = financial_url,
+    destfile = here("data-raw", "rikisreikningur", "rikisreikningur_financial.csv")
+  )
+  staff_url <- "https://rkaup.blob.core.windows.net/datathon2023/rikisreikningur_mannaudsgogn.csv"
+  download.file(
+    url = staff_url,
+    destfile = here("data-raw", "rikisreikningur", "rikisreikningur_staff.csv")
+  )
 }
 
-d <- map(2017:2022, read_fun) |> 
-  reduce(bind_rows) |> 
-  bind_rows(
-    read_excel(glue("{base_path}/rikisreikningur_gogn_2004-2016.xlsx"), sheet = 2) |> 
-      clean_names() |> 
-      select(ar = ar,
-             raduneyti = raduneyti_heiti,
-             stofnun = stofnun_heiti,
-             fjarlagavidfang = cofog_1_heiti,
-             malefnasvid = cofog_2_heiti,
-             malaflokkur = cofog_3_heiti,
-             tegund2 = tegund_l2_heiti,
-             tegund3 = tegund_l3_heiti,
-             tegund = tegund_heiti,
-             samtals = fjarhaed) |> 
-      mutate_at(vars(raduneyti:tegund), str_to_lower)
-  )
+process_rikisreikningur <- function() {
+  
+  fin <- read_csv2(here("data-raw", "rikisreikningur", "rikisreikningur_financial.csv")) |> 
+    head() |> 
+    select(
+      raduneyti = Raduneyti_numer_og_heiti,
+      stofnun = Stofnun_numer_og_heiti,
+      heiti = Bokunartakn_heiti,
+      fjarlagavidfang = Fjarlagavidfang_numer_og_heiti,
+      malaflokkur = Malaflokkur_numer_og_heiti,
+      yfirmalefnasvid = Yfirmalefnasvid,
+      malefnasvid = Malefnasvid_numer_og_heiti,
+      tegund = Tegund_numer_og_heiti,
+      tegund1 = Tegund_L1_numer_og_heiti,
+      tegund2 = Tegund_L2_numer_og_heiti,
+      tegund3 = Tegund_L3_numer_og_heiti,
+      threp1 = THREP_1,
+      threp2 = THREP_2,
+      threp3 = THREP_3,
+      threp4 = THREP_4,
+      threp5 = THREP_5,
+      yfirflokkur = Rekstraryfirlit_yfirflokkur,
+      undirflokkur = Rekstraryfirlit_undirflokkur,
+      cofog = COFOG_numer_og_heiti,
+      kr_stada_lok_ars = RAUNTOLUR_STADA_ARS,
+      everything()
+    ) |> 
+    mutate_at(
+      vars(raduneyti:cofog),
+      function(x) {
+        str_replace(
+          x,
+          pattern = "^[0-9\\- \\.]+", 
+          replacement = ""
+        )
+      }
+    )
+  
+  
+}
 
-
-d <- d |> 
-  mutate(
-    stofnun = case_when(
-      str_detect(stofnun, "landspítali") ~ "landspítali", 
-      str_detect(stofnun, "heilsug") & str_detect(stofnun, "reykjavík|mosfellsb|garðab|kópav|seltjarnar|hafnarf|") ~ "heilsugæsla á höfuðborgarsvæðinu",
-      str_detect(stofnun, "fjórðungssjúkrahúsið á akureyri") ~ "sjúkrahúsið á akureyri",
-      str_detect(stofnun, "lögreglustjórinn í reykjavík") ~ "lögreglustjórinn á höfuðborgarsvæðinu",
-      str_detect(stofnun, "vegage") ~ "vegagerðin",
-      str_detect(stofnun, "heilbr") & str_detect(stofnun, "vesturlands|akran|borgarn|búðard|grundarf|hólmav|hvammstan|ólafsv|stykkish") ~ "heilbrigðisstofnun vesturlands",
-      TRUE ~ stofnun)
-  )
-
-d |> 
-  write_parquet(
-    here("data", "rikisreikningur.parquet")
-  )
+process_rikisreikningur()

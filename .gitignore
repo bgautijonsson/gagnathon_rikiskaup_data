@@ -7,3 +7,4 @@
 data/opnirreikningar.parquet
 data/rikisreikningur.parquet
 data-raw/opnirreikningar/**.csv
+data-raw/rikisreikningur/**.csv

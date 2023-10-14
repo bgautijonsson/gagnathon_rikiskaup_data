@@ -53,7 +53,7 @@ process_rikisreikningur_financial <- function() {
       everything()
     ) |> 
     mutate_at(
-      vars(raduneyti:cofog),
+      vars(raduneyti:cofog, -timabil, -ar),
       function(x) {
         str_replace(
           x,

@@ -9,8 +9,6 @@ library(purrr)
 library(stringr)
 library(arrow)
 
-base_path <- here("data-raw", "rikisreikningur")
-
 
 download_rikisreikningur <- function() {
   financial_url <- "https://rkaup.blob.core.windows.net/datathon2023/rikisreikningur_fjarhagsgogn.csv"
@@ -26,13 +24,14 @@ download_rikisreikningur <- function() {
   )
 }
 
-process_rikisreikningur <- function() {
+process_rikisreikningur_financial <- function() {
   
   fin <- read_csv2(here("data-raw", "rikisreikningur", "rikisreikningur_financial.csv")) |> 
-    head() |> 
     select(
       raduneyti = Raduneyti_numer_og_heiti,
       stofnun = Stofnun_numer_og_heiti,
+      timabil = Timabil,
+      ar = Timabil_ar,
       heiti = Bokunartakn_heiti,
       fjarlagavidfang = Fjarlagavidfang_numer_og_heiti,
       malaflokkur = Malaflokkur_numer_og_heiti,
@@ -64,7 +63,38 @@ process_rikisreikningur <- function() {
       }
     )
   
-  
+  write_parquet(
+    fin,
+    here("data", "rikisreikningur_financial.parquet")
+  )
 }
 
-process_rikisreikningur()
+process_rikisreikningur_staff <- function() {
+  staff <- read_csv2(here("data-raw", "rikisreikningur", "rikisreikningur_staff.csv")) |> 
+    drop_na(stofnun_heiti) |> 
+    mutate(
+      ar = floor(dags_til_arman / 100),
+      man = dags_til_arman %% 100,
+      dags = clock::date_build(year = ar, month = man)
+    ) |> 
+    select(
+      raduneyti = raduneyti_heiti,
+      stofnun = stofnun_heiti,
+      dags,
+      everything()
+    ) |> 
+    filter(
+      tegund == "Stöðugildi"
+    ) |> 
+    summarise(
+      stodugildi = sum(stodugildi),
+      fjoldi_kennitalna = sum(fjoldi_kennitalna),
+      .by = c(raduneyti, stofnun, dags)
+    )
+  
+  write_parquet(
+    staff,
+    here("data", "rikisreikningur_staff.parquet")
+  )
+}
+

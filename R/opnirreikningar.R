@@ -79,7 +79,7 @@ process_opnirreikningar <- function() {
     mutate(dags_greidslu = as_date(dags_greidslu)) |> 
     mutate_at(
       vars(kaupandi, birgi, tegund),
-      as_factor
+      as.factor
     )
   
   d |> 

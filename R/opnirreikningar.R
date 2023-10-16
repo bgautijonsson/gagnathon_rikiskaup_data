@@ -9,6 +9,7 @@ library(readr)
 library(tidyr)
 library(purrr)
 library(stringr)
+library(forcats)
 
 #' Fall til að sækja gögnin frá opnirreikningar.is og vista þau sem .parquet skrá
 #'
@@ -79,7 +80,7 @@ process_opnirreikningar <- function() {
     mutate(dags_greidslu = as_date(dags_greidslu)) |> 
     mutate_at(
       vars(kaupandi, birgi, tegund),
-      as.factor
+      as_factor
     )
   
   d |> 

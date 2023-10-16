@@ -90,3 +90,19 @@ process_opnirreikningar <- function() {
 
 
 process_opnirreikningar()
+
+
+
+upload_opnirreikningar_to_s3 <- function() {
+  b <- s3_bucket("gagnathon")
+  
+  d <- read_parquet(file = "data/opnirreikningar.parquet")
+  
+  write_dataset(
+    dataset = d, 
+    path = b$path("opnirreikningar.parquet"),
+    format = "parquet"
+  )
+  
+}
+

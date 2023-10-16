@@ -98,3 +98,26 @@ process_rikisreikningur_staff <- function() {
   )
 }
 
+
+upload_rikisreikningur_to_s3 <- function() {
+  b <- s3_bucket("gagnathon")
+  fin <- read_parquet(
+    here("data", "rikisreikningur_financial.parquet")
+  )
+  
+  write_dataset(
+    dataset = fin, 
+    path = b$path("rikisreikningur_financial.parquet"),
+    format = "parquet"
+  )
+  
+  staff <- read_parquet(
+    here("data", "rikisreikningur_staff.parquet")
+  )
+  
+  write_dataset(
+    dataset = fin, 
+    path = b$path("rikisreikningur_staff.parquet"),
+    format = "parquet"
+  )
+}

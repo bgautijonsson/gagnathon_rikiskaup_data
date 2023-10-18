@@ -1,0 +1,33 @@
+
+process_opnirreikiningar2 <- function(){
+  
+  opnirreikningar <- read_parquet(here("data", "opnirreikningar.parquet"))
+  staff <- read_parquet(here("data", "rikisreikningur_staff.parquet")) 
+  
+  inters <- intersect(oreikn$kaupandi,staff$stofnun)
+  
+  staff2 <- staff |> 
+    filter( stofnun %in% inters ) |> 
+    mutate( year=year(dags) ) |>  
+    group_by( stofnun, year ) |> 
+    summarise( mean_stodugilid = mean(stodugildi) ) |>  
+    mutate( year_stofnun=paste0(year,"_",stofnun) )
+  
+  oreikn2 <- opnirreikningar |> 
+    filter( kaupandi %in% inters ) |> 
+    mutate( year=year(dags_greidslu) ) |> 
+    group_by( kaupandi, tegund, year ) |> 
+    summarise( upphaed_ars=sum(upphaed_linu) ) |> 
+    rename(stofnun=kaupandi) |> 
+    mutate( year_stofnun=paste0(year,"_",stofnun) ) |> 
+    filter( year_stofnun%in%staff2$year_stofnun ) |> 
+    mutate(upphaed_ars_per_stodugildi=NA)
+  
+  for( i in unique(oreikn2$year_stofnun) ){
+    d <- oreikn2[oreikn2$year_stofnun==i,]
+    d$upphaed_ars_per_stodugildi <- d$upphaed_ars / staff2$mean_stodugilid[staff2$year_stofnun==i]
+    oreikn2[oreikn2$year_stofnun==i,] <- d
+  }
+  
+  return(oreikn2)
+}
